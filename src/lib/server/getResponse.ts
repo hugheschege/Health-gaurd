@@ -2,9 +2,11 @@ import { intents } from './intents.json';
 
 export function getResponse(input: string) {
 	for (const intent of intents) {
-		if (intent.tags.toLowerCase().includes(input.toLowerCase())) {
+		const tags = intent.tags.toLowerCase().split(' ');
+		if (tags.some((tag) => input.toLowerCase().includes(tag))) {
 			for (const pattern of intent.patterns) {
-				if (pattern.toLowerCase().includes(input.toLowerCase())) {
+				const regex = new RegExp('\\b' + pattern.toLowerCase() + '\\b');
+				if (regex.test(input.toLowerCase())) {
 					return intent.responses[Math.floor(Math.random() * intent.responses.length)];
 				}
 			}
