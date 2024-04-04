@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	body {
+		@apply bg-slate-900;
+	}
+
+	:root {
+		--date-picker-background: #101011;
+		--date-picker-foreground: #f7f7f7;
+		--date-input-width: 100%;
+	}
+}
