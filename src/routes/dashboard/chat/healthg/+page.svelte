@@ -3,6 +3,7 @@
 	import type { PageData } from '../$types';
 
 	export let data: PageData;
+	const chatAndMessages = data.messages;
 </script>
 
-<Chat messages={[]} healthg={true} />
+<Chat messages={chatAndMessages} healthg={true} />

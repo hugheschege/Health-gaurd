@@ -22,6 +22,6 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	});
 
 	return {
-		chats
+		chats: chats.filter((chat) => chat.displayId !== 'healthg-869e0a51-cc1f-4939-b0a9-18b319234ced')
 	};
 };

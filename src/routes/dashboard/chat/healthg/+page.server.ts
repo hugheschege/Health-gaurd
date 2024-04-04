@@ -3,10 +3,9 @@ import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from '../$types';
 import { uid } from 'uid';
 import { db } from '$lib/db/db';
-import { chat } from '$lib/db/schema';
+import { chat, messages } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
-
-import { getPromptAndResponse } from '$lib/server/promptResponse';
+import { getResponse } from '$lib/server/getResponse';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const { error, userId } = checkUserAuth(locals);
@@ -18,10 +17,29 @@ export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user.id) {
 		throw new Error('failed to attach id on login');
 	}
+	const healthguuid = `healthg-869e0a51-cc1f-4939-b0a9-18b319234ced`;
+
+	const chats = await db.query.chat.findMany({
+		where: eq(chat.userId, userId)
+	});
+
+	const findChatAndMessages = await db.query.chat.findFirst({
+		where: eq(chat.displayId, healthguuid),
+		with: {
+			messages: true
+		}
+	});
+
+	if (!findChatAndMessages) {
+		return {
+			chats,
+			messages: []
+		};
+	}
 
 	return {
-		chats: [],
-		messages: []
+		chats,
+		messages: findChatAndMessages.messages
 	};
 };
 
@@ -62,13 +80,47 @@ export const actions: Actions = {
 			throw new Error('failed to attach id on login');
 		}
 
+		const healthguuid = `healthg-869e0a51-cc1f-4939-b0a9-18b319234ced`;
+
+		const findChat = await db.query.chat.findFirst({
+			where: eq(chat.displayId, healthguuid)
+		});
+
 		const formData = await request.formData();
-		const category = String(formData.get('promptCategory'));
+		const prompt = String(formData.get('userPrompt'));
 
-		const tips = await getPromptAndResponse(category);
+		if (!findChat) {
+			const savedChat = await db
+				.insert(chat)
+				.values({ displayId: healthguuid, userId })
+				.returning();
+			const response = getResponse(prompt);
 
-		return {
-			tips
-		};
+			const savedMessage = await db
+				.insert(messages)
+				.values({
+					prompt,
+					response: String(response),
+					chatId: savedChat[0].id
+				})
+				.returning();
+
+			return {
+				newMessage: savedMessage[0]
+			};
+		} else {
+			const response = getResponse(prompt);
+			const savedMessage = await db
+				.insert(messages)
+				.values({
+					prompt,
+					response: String(response),
+					chatId: findChat.id
+				})
+				.returning();
+			return {
+				newMessage: savedMessage[0]
+			};
+		}
 	}
 };
